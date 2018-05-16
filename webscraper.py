@@ -6,7 +6,6 @@ import re
 #--------www.collegeswimming.com and attempting to gather meet data--------
 #NOTE executable_path should be changed to reflect where chromedriver is 
 #installed for whomever the user is
-#There is some redunacy within this file, will need to update soon
 
 seasons_list = ['2017-2018','2016-2017','2015-2016','2014-2015','2013-2014',
                 '2012-2013','2011-2012','2010-2011','2009-2010','2008-2009']
@@ -115,10 +114,10 @@ def cs_getdata(meet_id = '104736'):
     date = meet_date(url %'1')
     print('Getting swims from ' + meet)
     print('On ' + date)
-    for i in range(1,num_events+1): #need to visit each event
+    for event in range(1,num_events+1): #need to visit each event
         ltimes = []
         lnames = []
-        browser.visit(url %str(i))
+        browser.visit(url %str(event))
         #this path finds the data on the page, but should have length of at least 4
         #finds more than just the data needed
         path = '/html/body/div/div/div/div/div/div/div'
@@ -151,9 +150,9 @@ def cs_getdata(meet_id = '104736'):
         all_swims.append([event_name])
         #Need to distinguish between Relays and Individuals, because of website format
         if 'Relay' not in event_name:
-            lteamIDs = get_team_ids(url %str(i))
+            lteamIDs = get_team_ids(url %str(event))
         else:
-            lteamIDs = get_relay_ids(url %str(i))
+            lteamIDs = get_relay_ids(url %str(event))
         
         del(lnames[0]) #Remove event name from that array, has been stored
         
@@ -190,26 +189,35 @@ def cs_getdata(meet_id = '104736'):
 
         #LOOK OVER THIS PART AGAIN SEEMS REALLY SLOPPY AND I CANT FOLLOW HAHA
         lnames_dummy = []
+        #ltimes==0 iff the event is an individual event I think
         if len(ltimes) == 0:
-            for j in range(len(lnames)):
-                current_entry = lnames[j].split()
+            for entry in range(len(lnames)):
+                current_entry = lnames[entry].split()
                 name = ''
-                for k in range(1,len(current_entry)):
-                    if test_letters(current_entry[k])==False:
+                #Need this gross loop because some people have stupid names
+                for value in range(1,len(current_entry)):
+                    if test_letters(current_entry[value])==False:
                     #no letters -> time (note the loop starts at 1 = ignore first entry(always place)
-                        ltimes.append(current_entry[k])
+                        ltimes.append(current_entry[value])
+                    
                     else:
-                        name = name + current_entry[k] + ' '
-                    if k + 1 == len(current_entry):
+                    #there are letters which implies it is a part of a name
+                        name = name + current_entry[value] + ' '
+                    #add to names if its the last entry in the current_entry
+                    if value + 1 == len(current_entry):
                         lnames_dummy.append(name.strip())
+                        
+        #this is for relay events only! just reformatting names
         else:
-            for j in range(len(lnames)):
-                current_entry = lnames[j].split()
+            for entry in range(len(lnames)):
+                current_entry = lnames[entry].split()
                 name = ''
-                for k in range(1,len(current_entry)):
-                    name = name + current_entry[k] + ' '
-                    if k + 1 == len(current_entry):
-                        lnames_dummy.append(name.strip())            
+                for value in range(1,len(current_entry)):
+                    name = name + current_entry[value] + ' '
+                    if value + 1 == len(current_entry):
+                        lnames_dummy.append(name.strip())
+                        
+        #re assign lnames to the dummy from the prior nested loops
         lnames = lnames_dummy
         
         #remove extra 'PB's that may be in the list for some dumb reason
@@ -220,21 +228,23 @@ def cs_getdata(meet_id = '104736'):
                     break
                 elif lnames[item]=='PB':
                     to_del.append(item)
+                    
         #same deal as before with reversed loop, making sure to preserve index
-        for j in reversed(range(len(to_del))):
-            del(lnames[to_del[j]])    
+        for index in reversed(range(len(to_del))):
+            del(lnames[to_del[index]])
+            
         if 'Diving' not in event_name:
             for j in range(len(ltimes)):
                 #the messy error handling is messy, but sometimes the all_swims list
                 #doesnt append for no reason. So try twice, then just add on 0s otherwise
                 #should maybe find a better solution somehow
                 try:
-                    all_swims[i-1].append([lnames[j],lteamIDs[j],ltimes[j]])
+                    all_swims[event-1].append([lnames[j],lteamIDs[j],ltimes[j]])
                 except IndexError:
                     try:
-                        all_swims[i-1].append([lnames[j],lteamIDs[j],ltimes[j]])
+                        all_swims[event-1].append([lnames[j],lteamIDs[j],ltimes[j]])
                     except IndexError:
-                        all_swims[i-1].append([0,0,0])
+                        all_swims[event-1].append([0,0,0])
             print('Got results for ' + event_name)
     end = time.time()
     print('Took ' + str(int(end-start)) +'s')
@@ -369,19 +379,3 @@ def write_results(results,meet_name,file_out='dump.txt'):
                     to_print = str(name)+', teamID='+str(teamID)+', time: '+str(time)
                     to_print = str(to_print.encode('ascii','ignore'))[2:][:-1]
                     out.write(to_print + '\n')
-            
-                    
-def get_teamID(teamID):
-    try:
-        id_file = open('team ids.txt')
-    except FileNotFoundError:
-        print('File Not Found, writing IDs to txt file')
-        write_names_by_id()
-        id_file = open('team ids.txt')
-        
-    for line in id_file:
-        currentID = line.split('=')[1][:-1]
-        current_team = line.split('=')[0][:-3]
-        if currentID == str(teamID):
-            id_file.close()
-            return current_team
