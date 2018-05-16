@@ -55,7 +55,7 @@ def score_swims(file_in='2018 NCAA Division I Mens Championships.txt'):
                 current_index = len(meet_data) - 1
                 #add the data from the line to the event array
                 meet_data[current_index].append([name,team_id,time])
-    os.chdir('/Users/andrewlindstrom/Desktop/College Swimming')
+    os.chdir(dir_name)
     import score
     ranked_swims=[]
     #to look for team IDs -> is meet_data[event][1]
