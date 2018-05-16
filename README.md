@@ -12,3 +12,5 @@ selenium and splinter - for web stuff - many options for drivers, I used the Chr
 matplotlib - for plots (soon)
 
 numpy - for better performance (soon)
+
+currently waiting for .txt database of files to be done for 2017-2018 season
